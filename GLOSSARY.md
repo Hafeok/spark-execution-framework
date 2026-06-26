@@ -1,0 +1,71 @@
+# Glossary
+
+> Every load-bearing term in this framework, pinned once. Where a term is inherited from a foundation it is marked and its meaning is not re-defined here, only located. Where this framework introduces or specialises a term, the definition here is normative.
+
+---
+
+## Inherited from the foundations
+
+**Worker** *(Execution Contract)* — a role, not a model. A declared unit of authority with a bounded permitted/forbidden surface. The same model fills different worker roles at different bindings.
+
+**Capability** *(Execution Contract)* — an explicit grant over the read / write / call / spawn floor. Held to exactly what the task needs.
+
+**Input Contract** *(Execution Contract)* — the frozen, bounded input a worker is a function of. Here, the SPMC bundle, mounted read-only, identified by `bundle-hash`.
+
+**Output Contract** *(Execution Contract)* — the declared shape and destination of what a worker produces. Here, the VerdictEvent (to the stream) and effect-tool writes (to the declared workspace).
+
+**Verification** *(Execution Contract)* — a declared verifier producing a verdict in the vocabulary *accepted / rejected / escalate*, against an oracle the worker cannot write.
+
+**Transition Contract** *(Execution Contract)* — the binding of every verdict to a consequence (advance / halt / retry / escalate). Its shape *is* the autonomy level.
+
+**Rule 1 / the funnel** *(Execution Contract & Specification Framework)* — constraint density rises toward the action; required capability falls correspondingly. A worker needing broad capability signals upstream under-decomposition. Asserted by both pillars.
+
+**SPMC** *(Specification Framework)* — Schema, Prompt, Model, Context: the four-axis execution unit a model consumes. One bundle per discrete work-unit.
+
+**Model binding** *(Specification Framework, Model axis)* — the pinned Model axis: identity (provider/endpoint, version), **served precision/quantization**, and invocation parameters (temperature, top-p, seed where honored). A model *name* is not a binding. A change of binding under an unchanged name is still a Model-axis change and resets the quality baseline.
+
+**Derivation contract** *(Specification Framework)* — every How element traces to a What element; every SPMC bundle to a How element. Nothing dangles.
+
+**Closure contract** *(Execution Contract)* — a unit of work traced end to end; every grant traces to a need, every output is verified, every verdict has a consequence. The execution-side mirror of the derivation contract.
+
+**Producer-owns / specification-stewarded** *(Two Pillars)* — the side that freezes and hands over the work-unit defines its shape; execution conforms. The interface versions on its own axis, owned by no single framework or executor.
+
+---
+
+## Introduced or specialised by this framework
+
+**Cell** — the execution primitive. The smallest thing the executor runs. Cells live *inside* a work-unit, ordered by an intra-unit dependency DAG (e.g. test-before-implement). Cells are never reordered or scheduled by the queue; they are the sealed interior of a work-unit.
+
+**Work-unit** — the **schedulable atom**. The queue holds, reorders, and escalates work-units, never cells. A work-unit carries one SPMC bundle, one Model binding, an acceptance-class, and a sealed cell-DAG interior. Independent of all other work-units (no cross-unit dependencies). It is the object both pillars name as their edge, and therefore the interface type across the seam.
+
+**Cell-DAG** — the dependency graph of cells within one work-unit. Sealed: opaque to the queue, walked only by the executor once the unit is admitted. The single isolation domain of a work-unit.
+
+**Binding-homogeneity invariant** — a work-unit is well-formed iff all of its cells require the same Model binding. The funnel at the work-unit scale. Serves as a pre-dispatch conformance check, an escalation simplifier (unit-atomic escalation is lossless), and a maturation metric (heterogeneity rate falls as the corpus types itself).
+
+**Unit-atomic escalation** — on a rejecting/escalating verdict, the *whole* work-unit re-enqueues at the next Model binding; the entire cell-DAG re-runs. Cells are never escalated individually across a residency boundary. Made lossless by binding-homogeneity.
+
+**Tier** — a routing handle *over* a Model binding (which rung, day vs night residency). Not a substitute for the binding: the binding determines output and is what is recorded for attribution; the tier is only its routing label.
+
+**Box configuration / mode** — the whole-box state the developer switch selects: QUEUE or EXPLORER. Mutually exclusive in VRAM. Set externally by a human, never inferred by the box.
+
+**QUEUE** — the box configuration for batched execution: small/medium model bindings resident, the executor draining the work-unit priority set. The box's best regime. Trust properties (frozen input, computed verification, declared transition) hold in full.
+
+**EXPLORER** — the box configuration for local frontier reasoning: the largest resident model binding, an OpenCode agentic loop, serial and slow. Produces a **discovery record**, not accepted code. Used only for novel work bound to the box by locality, cost-at-volume, or offline need.
+
+**OFF-BOX** — not a box configuration. Opus-class inference off the Spark entirely, for define-step authoring and any non-local exploration. Always available.
+
+**Discovery record** — the output of EXPLORER (or off-box exploration): a candidate decomposition (proposed slice, work-unit boundaries, cells). Not shippable code. The only sanctioned channel by which exploratory work re-enters engineered mode — it must pass back through dispatch as conformant work-units.
+
+**Developer switch** — the single human-thrown, human-rate control selecting the box configuration. The mode-controller is its actuator, not an inference engine; it enforces the VRAM mutual-exclusion and loads the chosen configuration.
+
+**Dispatch (`product dispatch`)** — the specification side's last act: resolve What/How pointers into a frozen by-value SPMC bundle, run the binding-homogeneity check, and emit the WorkUnit. The boundary between the pointer-world of specification and the frozen-world of execution. Mechanical; no model required.
+
+**WorkUnit (schema)** — the outbound wire contract across the seam. Carries: unit-ref, parent-deliverable, bundle-hash, the by-value SPMC bundle, the Model binding, tier, acceptance-class, ladder-position, environment declaration, credential-grant reference, tool-grants, and the sealed cell-graph.
+
+**VerdictEvent (schema)** — the inbound wire contract across the seam. Self-describing: carries event-id, emitted-at, unit-ref, parent-deliverable, bundle-hash, verdict, tier-ran, cell-results, next-consequence. Emitted fire-and-forget to a stream; the producer knows no consumer.
+
+**Acceptance-class** — a per-work-unit field declaring the human-free transition bindings: `auto-commit-if-green` (a verdict→advance binding that proceeds without a human — Level 5 for that unit kind) or `needs-verdict` (accepted still escalates to a human — Level 4). The autonomy level is thus per-unit-kind, declared, not a global setting.
+
+**Per-unit ephemeral sandbox** — the Environment mechanism: each work-unit runs in its own isolation domain (frozen bundle read-only, private workspace writable, no network except declared destinations, no host/peer reach), destroyed at verdict. Why the cell-DAG is sealed: it is one sandbox.
+
+**Maturation** — the compounding loop: exploration mints binding-homogeneous work-units; executing them cheaply by day feeds accepted work back; the heterogeneity rate falls and more work descends to cheap bindings permanently. The funnel made temporal.
