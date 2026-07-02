@@ -24,6 +24,13 @@ implementation. Three validation questions remain open (see the overview).
 - `conformance/execution-contract-checklist.md` — the eight blocks as a checkable list.
 - `conformance/product-framework-support.md` — the four ladder rungs as a checkable list.
 
+### Added — 2026-07-02
+- `bindings/qwen3.6-35b-gb10.yaml` — first hardware-validated Model binding
+  (Qwen3.6-35B-A3B-FP8 on DGX Spark GB10). Serves via the pinned native
+  `timothystewart6/vllm-gb10:v0.20.1-gb10.0` image with `VLLM_USE_DEEP_GEMM=0`.
+  Batching measured at ~3x (12 concurrent / 18.9 s) at `max_num_seqs=4`.
+- `bindings/README.md` — what a validated binding is and requires.
+
 ### Known open
 - Whether any legitimate work-unit pattern is intrinsically binding-mixed.
 - Whether a fully-resolved SPMC bundle can leave a dangling reference at dispatch.

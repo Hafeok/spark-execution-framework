@@ -37,6 +37,10 @@ The seam to the specification pillar is specified separately, because it version
 - **[CHANGELOG.md](CHANGELOG.md)** — version history. The framework versions on its own axis, independently of any implementation.
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[rfcs/](rfcs/)** — how normative changes are proposed and gated.
 
+## Bindings
+
+- **[bindings/](bindings/)** — validated SPMC Model bindings: fully-pinned, hardware-tested serving configurations that fill a WorkUnit's `model-binding` field. See [qwen3.6-35b-gb10.yaml](bindings/qwen3.6-35b-gb10.yaml) for the first validated binding (Qwen3.6-35B on GB10).
+
 ## Status
 
 These documents are **descriptive of a framework, not yet ratified by a running implementation.** Three questions remain open and are called out in the overview; each can only be closed by carrying a concrete specification through the chain, not by further design:
