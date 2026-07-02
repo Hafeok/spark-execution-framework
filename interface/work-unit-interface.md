@@ -4,6 +4,21 @@
 
 ---
 
+## Source of truth: the shared contracts layer
+
+The wire-level shape of what crosses this seam is **no longer defined here.** It is published, versioned, and owned on its own tier by the [**AI Development Contracts**](https://github.com/Hafeok/ai-development-contracts) repository — the [WorkUnit](https://github.com/Hafeok/ai-development-contracts/blob/main/contracts/work-unit.md) and [VerdictEvent](https://github.com/Hafeok/ai-development-contracts/blob/main/contracts/verdict-event.md) contracts, with **normative machine-checkable schemas** under [`schemas/`](https://github.com/Hafeok/ai-development-contracts/tree/main/schemas). This framework is checked against **contracts version `0.1.0`** (foundation_ref `main`).
+
+That tier sits *beneath both* frameworks (Stable Dependency Principle): neither the specification framework nor this execution framework contains it, so either can be swapped without touching the other. This document is therefore **the Spark-specific projection** of those contracts — how this executor consumes the published shape and what execution-side detail it reads *within* it — **not** a second, competing definition. Where this doc and the published contract differ, **the contract governs.**
+
+Two consequences the rest of this document honors:
+
+- The Spark executor **conforms to the published shape**; it does not require any producer to emit a Spark-specific WorkUnit format. The Execution-Contract fields this framework needs (`environment`, `credential-grant`, `tool-grants`) are carried as **optional additions the contract's interiors explicitly permit** — read when present, defaulted to a conformant floor when absent — never as fields a producer must supply.
+- The executor **validates every incoming WorkUnit** against the contracts-layer normative schema for the shared encoding ([`work-unit.schema.json`](https://github.com/Hafeok/ai-development-contracts/blob/main/schemas/work-unit.schema.json) for JSON, the SHACL shapes for RDF) **plus the two structural invariants the harness enforces** — no cross-unit `requires` edge, and every cell `context-refs` id resolving in the unit's own context pool — and **rejects anything non-conforming** before admission.
+
+The framework's full consumer-side conformance is stated in [`conformance/contracts-conformance.md`](../conformance/contracts-conformance.md).
+
+---
+
 ## Where this sits
 
 This is the seam between the two pillars, and it versions on its own axis — independently of either side it connects. The Two Pillars foundation requires that framework implementations be swappable without disturbing the other pillar; this document is what makes that swap mechanical. Replace the Spark substrate with a different executor, or product-cli with a different spec tool, and this contract survives unchanged as long as the replacement honors the two schemas below.
@@ -62,73 +77,87 @@ Dispatch is a mechanical projection from the graph — no model required. It is 
 
 Emitted by `product dispatch`. Travels **by value**: the SPMC bundle is serialized into the unit in full, with every reference (ADRs, test criteria, context fragments) resolved and inlined. The executor needs nothing but the unit in hand.
 
+The **normative field set and meaning are the contract's** ([`contracts/work-unit.md`](https://github.com/Hafeok/ai-development-contracts/blob/main/contracts/work-unit.md)). Restated here as the executor reads it, with the Spark-specific additions marked:
+
 ```
-WorkUnit
+WorkUnit                             # ── contract envelope (published; the executor accepts as-is) ──
   unit-ref           : string        # opaque id. The executor treats this as a label,
                                       # NOT a pointer into product-cli's graph.
   parent-deliverable : string        # opaque lineage tag. Carried solely so a verdict
                                       # can later be rolled up. Opaque to the executor.
-  bundle-hash        : string        # content hash of the frozen SPMC bundle below.
+  bundle-hash        : string        # content hash (algo:digest) of the frozen SPMC bundle.
                                       # This IS the work-unit's identity. Present even
                                       # though the bundle travels by value (see note).
-  spmc-bundle        : object        # the frozen Input Contract — FULLY self-contained.
-                                      # No reference the executor must resolve by calling
-                                      # back. Knowledge entered at this boundary, with
-                                      # provenance; nothing is acquired live mid-execution.
-  model-binding      : object        # the pinned SPMC Model axis for the whole unit
-                                      # (Specification Framework: Model is a BINDING, not
-                                      # a name). Fixes model identity (provider/endpoint,
-                                      # version) AND served precision/quantization AND
-                                      # invocation params (temperature, top-p, seed where
-                                      # honored). On the Spark, quantization is what makes a
-                                      # model fit 128GB, so it is load-bearing, not an
-                                      # implementation detail: two units at the same model
-                                      # name but different quantization are DIFFERENT
-                                      # bindings and not interchangeable. Homogeneous across
-                                      # the unit's cells (the homogeneity invariant, stated
-                                      # over binding — see note). The executor matches this
-                                      # binding to a resident model / box configuration.
-  tier               : string        # a label OVER the binding, for routing/escalation
-                                      # convenience only (which rung, day vs night residency).
-                                      # NOT a substitute for model-binding: the binding is
-                                      # what determines output and what is recorded for
-                                      # attribution; the tier is just its routing handle.
-  acceptance-class   : enum          # auto-commit-if-green | needs-verdict
-                                      # Tells a CONSUMER whether a green verdict may
-                                      # auto-commit. The executor passes it through; it
-                                      # does not interpret deliverable-level meaning.
-  ladder-position    : int           # current rung on the Worker-role escalation ladder.
-                                      # Set by dispatch; advanced on re-dispatch after a
-                                      # rejecting verdict. The executor reads it to pick
-                                      # the tier; it does not own the ladder.
-  cell-graph         : object        # the SEALED interior. Opaque to the queue; walked
-                                      # only by the executor. Carries intra-unit cell
-                                      # dependencies (e.g. test-before-implement). No
-                                      # cross-unit edges exist, ever.
-  environment        : object        # the declared execution boundary for this unit
-                                      # (Execution Contract: Environment). Permitted
-                                      # network destinations, output-workspace mount,
-                                      # isolation guarantees. Enforced by construction:
-                                      # the executor runs the unit in a per-unit sandbox
-                                      # destroyed at verdict. Cells take effects (file
-                                      # writes, service calls) INSIDE this boundary only.
-  credential-grant   : string        # a REFERENCE, never a secret (Execution Contract:
-                                      # Credentials). The isolation boundary exchanges it
-                                      # for short-lived, least-privilege credentials scoped
-                                      # to this unit's declared effect destinations, and
-                                      # revokes them when the sandbox is destroyed. Absent
-                                      # when the unit needs no effect destination.
-  tool-grants        : array         # each cell-invokable tool, classified effect|knowledge
-                                      # (Execution Contract: Tools). Effect tools may fire
-                                      # during execution; knowledge tools may NOT — all
-                                      # knowledge was frozen into spmc-bundle at dispatch.
+  tier               : string        # the single worker-role tier for the whole unit.
+                                      # The executor matches it to its resident model / box
+                                      # mode. A routing handle OVER the Model binding — the
+                                      # binding (spmc-bundle.model) is what determines output
+                                      # and is recorded for attribution; tier picks residency.
+  acceptance-class   : enum          # auto-commit-if-green | needs-verdict. Tells a CONSUMER
+                                      # whether a green verdict may auto-commit. The executor
+                                      # echoes it; it does not interpret deliverable meaning.
+  ladder-position    : int           # escalation-ladder rung. The executor READS it to pick
+                                      # the tier; it does not own the ladder. Advanced by the
+                                      # producer on re-dispatch after a rejecting verdict.
+  artifact-delivery  : object        # DECLARED transport for produced artifacts. The executor
+                                      #   honors the mode the unit declares:
+                                      #     mode: inline    → artifacts return by value in the
+                                      #                       VerdictEvent cell-results
+                                      #     mode: workspace → the executor writes into the
+                                      #                       declared workspace (kind,
+                                      #                       location, ref — e.g. a local git
+                                      #                       clone) and ONLY there; the
+                                      #                       VerdictEvent references path+hash
+  spmc-bundle        : object        # the frozen Input Contract — FULLY self-contained. No
+                                      #   reference the executor must resolve by calling back.
+    model            :   object      #   M — ONE fully-pinned binding for the whole unit
+                                      #       (tier homogeneity): identity (provider/endpoint,
+                                      #       version), served precision/quantization, and
+                                      #       invocation params (temperature, top-p, seed where
+                                      #       honored). On the Spark, quantization is what makes
+                                      #       a model fit 128GB — load-bearing, not a detail:
+                                      #       same model name at a different quantization is a
+                                      #       DIFFERENT binding. The executor matches this to a
+                                      #       resident model / box configuration.
+    context-pool     :   object      #   C — content-addressed fragment pool, every fragment
+                                      #       inline with an id and provenance; cells select by
+                                      #       id. Knowledge entered here, frozen, at dispatch.
+  cell-graph         : object        # the SEALED interior DAG. Walked only by the executor;
+    cells[]          :   array       #   each cell is ONE LLM call carrying its own S and P:
+      id             :     string
+      requires       :     string[]  #   intra-unit cell ids only; NO cross-unit edge, ever
+      schema         :     object    #   S — shape-language + shape document inline
+      prompt         :     object    #   P — prompt content inline, never a callback ref
+      context-refs   :     string[]  #   C — fragment ids; every id resolves in this unit
+      output         :     object    #   the artifact this cell produces (artifact-id,
+                                      #       media-type, path under workspace mode)
+      gate           :     object?   #   optional extra gate beyond schema conformance
+
+# ── Spark execution-side additions (OPTIONAL; the contract's interiors permit extra fields) ──
+# Read when the producer supplies them; defaulted to a conformant floor when absent. The
+# executor NEVER requires a producer to emit these — a bare contract WorkUnit runs unchanged.
+  environment        : object?       # the declared execution boundary (Execution Contract:
+                                      # Environment). Permitted network destinations, isolation
+                                      # guarantees. Default when absent: deny-all network, a
+                                      # private ephemeral workspace, destroyed at verdict.
+  credential-grant   : string?       # a REFERENCE, never a secret (Execution Contract:
+                                      # Credentials). Exchanged at the boundary for short-lived,
+                                      # least-privilege credentials, revoked at verdict. Absent ⇒
+                                      # the unit gets no credential (no effect destination).
+  tool-grants        : array?        # each cell-invokable tool, classified effect|knowledge
+                                      # (Execution Contract: Tools). Absent ⇒ knowledge-only:
+                                      # no effect tool may fire. Knowledge tools never fire
+                                      # mid-run in any case — all knowledge froze at dispatch.
 ```
 
-**Constraints the emitter must honor (checked before emit):**
+**Validation before admission.** The executor validates every incoming WorkUnit against the contracts-layer **normative schema** for the shared encoding (`work-unit.schema.json` / the SHACL shapes) **plus** the two structural invariants the schemas cannot scope — no cross-unit `requires` edge, and every `context-refs` id resolving in this unit's `context-pool` — and **rejects** any unit that fails. A structurally valid but unexecutable unit (a cell missing its prompt or shape, an unresolvable context ref) is rejected, not admitted.
+
+**Constraints the emitter must honor (checked on the specification side, before emit):**
 
 1. **The SPMC bundle is fully resolved.** No element requires a callback into product-cli to read. If the executor would ever need `product context …` mid-run, the unit is not frozen and must not be emitted.
-2. **Tier-homogeneity holds.** Every cell in `cell-graph` requires `tier`. A heterogeneous unit is a decomposition defect and fails dispatch — this check lives on the **specification side**, alongside `graph check` / `gap check` / `drift check`, because a malformed decomposition is a spec defect, not a runtime condition.
+2. **Tier-homogeneity holds.** Every cell in `cell-graph` requires the single `tier` / binding. A heterogeneous unit is a decomposition defect and fails dispatch — this check lives on the **specification side**, alongside `graph check` / `gap check` / `drift check`, because a malformed decomposition is a spec defect, not a runtime condition.
 3. **`bundle-hash` is the hash of `spmc-bundle` as emitted.** Identity and body agree at emit time.
+4. **Artifact transport is declared.** `artifact-delivery` states `inline` or `workspace`; the seam forbids **undeclared** side channels.
 
 **Note on by-value + hash.** The bundle travels bodily, so a single-box executor needs no shared store. `bundle-hash` is nonetheless always present, because the verdict event needs it and because it is the unit's identity. This makes a future migration to by-reference **additive, not breaking**: move the bundle body into a content-addressed store, leave the hash in the unit, and federation of many executors pulling one frozen bundle becomes possible without a schema change. By-value is correct for v0 and for a single Spark; the hash keeps the door open.
 
@@ -157,10 +186,18 @@ VerdictEvent
   tier-ran           : string        # the tier the unit actually executed at. Equals the
                                       # WorkUnit tier on a first run; on a re-dispatch it
                                       # records the escalated tier that produced this verdict.
-  cell-results       : array         # per-cell verdicts from walking the sealed cell-DAG.
-                                      # The executor's evidence for the unit verdict. A
-                                      # consumer may ignore this and act on `verdict` alone;
-                                      # it is present for audit and for heterogeneity metrics.
+  cell-results       : array         # per-cell results from walking the sealed cell-DAG.
+    cell-id          :   string      #   echoes the WorkUnit cell id
+    verdict          :   enum        #   accepted | rejected | skipped
+    artifact         :   object?     #   the produced artifact, CONTENT-HASH identified in
+                                      #     BOTH delivery modes: artifact-id (echoes the cell's
+                                      #     declared output), content-hash, and delivery —
+                                      #     inline{content} OR workspace{path, ref} — matching
+                                      #     the WorkUnit's declared artifact-delivery mode.
+    evidence         :   object?     #   gate output / validation report (interior open).
+                                      # The executor's evidence for the unit verdict. A consumer
+                                      # may act on `verdict` alone; cell-results is present for
+                                      # audit, the rationale trace, and heterogeneity metrics.
   next-consequence   : enum          # advance | halt | retry | escalate
                                       # The Transition Contract binding the executor applied
                                       # or recommends. On `escalate`, signals that a
@@ -174,6 +211,8 @@ VerdictEvent
 - **Reconcile, do not poll-and-block.** product-cli observes verdict events and updates its graph: unit-verdict → work-unit state → roll up to deliverable-done. The rollup is the specification side's business; the executor neither performs nor understands it.
 - **`escalate` / re-dispatch is a fresh emit.** On a rejecting or escalating verdict whose ladder is not exhausted, product-cli re-runs `dispatch` for the unit with `ladder-position` advanced — producing a new WorkUnit (new run, same `unit-ref`, same `bundle-hash` if the bundle is unchanged). Escalation is unit-atomic: the whole cell-DAG re-runs at the higher tier. The executor never re-dispatches itself; it only emits the verdict that prompts a consumer to.
 - **Acceptance-class is honored by the consumer, not the executor.** `auto-commit-if-green` means a consumer may commit on an `accepted` verdict without human review; `needs-verdict` means it surfaces for a human. The executor emitted the same event either way.
+
+**Artifact return follows the unit's declared `artifact-delivery` mode.** Under `inline`, the executor puts the artifact body in the event by value (the seam stays store-free). Under `workspace`, the executor has written into the workspace the WorkUnit *itself* declared — never an undeclared location — and the event carries the resulting `path` and `ref`. In **both** modes every artifact carries a `content-hash`, so an accepted artifact is attributable and verifiable regardless of transport, and a consumer never fetches from a location the unit did not name.
 
 ---
 
@@ -213,6 +252,7 @@ Outbound: **WorkUnit (by value).** Inbound: **VerdictEvent (by event).** Nothing
 
 ## References
 
+- **[AI Development Contracts](https://github.com/Hafeok/ai-development-contracts)** — the normative source of truth for the two wire shapes this seam carries: [WorkUnit](https://github.com/Hafeok/ai-development-contracts/blob/main/contracts/work-unit.md), [VerdictEvent](https://github.com/Hafeok/ai-development-contracts/blob/main/contracts/verdict-event.md), and the machine-checkable [`schemas/`](https://github.com/Hafeok/ai-development-contracts/tree/main/schemas). This framework consumes them per the [consumer checklist](https://github.com/Hafeok/ai-development-contracts/blob/main/conformance/consumer-conformance.md); its declaration is [`conformance/contracts-conformance.md`](../conformance/contracts-conformance.md).
 - **Specification Framework** — one SPMC bundle per discrete work-unit; the derivation contract; the work-unit as specification's floor.
 - **Execution Contract** — Input Contract (frozen, bounded); Output Contract (declared shape and destination); Verification (declared verdict: accepted / rejected / escalate); Transition Contract (verdict → consequence); Tools (knowledge enters at the frozen boundary, never live).
 - **Two Pillars** — peers, swappable independently; stability flows downward; the interface between framework implementations must not bind their lifecycles.

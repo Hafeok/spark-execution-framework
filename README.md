@@ -30,6 +30,7 @@ The seam to the specification pillar is specified separately, because it version
 
 - **[conformance/execution-contract-checklist.md](conformance/execution-contract-checklist.md)** — the eight building blocks restated as a checkable list, each with the mechanism that discharges it. A framework instance (or a CI gate) can check itself against this.
 - **[conformance/product-framework-support.md](conformance/product-framework-support.md)** — the four ladder rungs restated as the execution-side obligations this framework supplies the machinery for.
+- **[conformance/contracts-conformance.md](conformance/contracts-conformance.md)** — the consumer-side declaration against the [AI Development Contracts](https://github.com/Hafeok/ai-development-contracts) wire schemas (contracts `0.1.0`): accepts any well-formed WorkUnit, emits conforming VerdictEvents. This is where the framework speaks the concrete seam schemas, not just the pillar definitions.
 
 ## Reference
 
@@ -56,6 +57,7 @@ A degraded sovereign mode (local large-model substitution under an offline const
 This framework depends on:
 
 - **[AI Development Foundations](https://github.com/Hafeok/ai-development-foundations)** — the Execution Contract (which it conforms to), the Specification Framework and Two Pillars (which it references).
+- **[AI Development Contracts](https://github.com/Hafeok/ai-development-contracts)** — the shared wire schemas (WorkUnit, VerdictEvent) that cross the seam, on their own tier beneath both frameworks. This framework conforms to the [consumer checklist](https://github.com/Hafeok/ai-development-contracts/blob/main/conformance/consumer-conformance.md) (contracts `0.1.0`); the [Work-Unit Interface](interface/work-unit-interface.md) is now the Spark-specific projection of those contracts, not a competing definition.
 - **[product-framework](https://github.com/Hafeok/product-framework)** — the specification-pillar instantiation whose work units it executes and whose conformance ladder it supports.
 
 It is depended on by:

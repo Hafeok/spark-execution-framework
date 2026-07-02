@@ -49,6 +49,7 @@ The contract's test is **closure**: a unit of work traced end to end, nothing da
 - [ ] Each unit's input is the SPMC bundle, **frozen and bounded** at execution start, identified by `bundle-hash`.
 - [ ] The bundle is fully resolved — no reference the executor must chase by calling back.
 - [ ] The worker's behaviour is a function of this input alone; nothing is acquired through an undeclared channel after start.
+- [ ] Each incoming WorkUnit is **validated against the [contracts-layer](https://github.com/Hafeok/ai-development-contracts) normative schema** for the shared encoding, plus the two structural invariants (no cross-unit edge; every `context-refs` id resolves in-unit), and a non-conforming unit is **rejected** before admission. (Consumer-conformance; see [`contracts-conformance.md`](contracts-conformance.md).)
 
 ### Output Contract
 - [ ] Each unit's output has a declared shape (the VerdictEvent schema; effect-tool writes to the declared workspace) and a declared destination (the event stream; the workspace).
