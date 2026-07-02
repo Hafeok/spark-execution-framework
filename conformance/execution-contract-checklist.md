@@ -1,6 +1,6 @@
 # Conformance Checklist — Execution Contract
 
-> The Execution Contract's eight building blocks and its closure rule, restated as a checkable list. An implementation of this framework — or a CI gate at dispatch — checks itself against these. A box that fails any item is, in the contract's own words, "running unsupervised." Each item names the discharging mechanism specified in [`docs/01-execution-framework.md`](../docs/01-execution-framework.md).
+> The Execution Contract's eight building blocks and its closure rule, restated as a checkable list. An implementation of Kiln — or a CI gate at dispatch — checks itself against these. A box that fails any item is, in the contract's own words, "running unsupervised." Each item names the discharging mechanism specified in [`docs/01-execution-framework.md`](../docs/01-execution-framework.md).
 
 The contract's test is **closure**: a unit of work traced end to end, nothing dangling. The items below are that trace, decomposed.
 
@@ -49,7 +49,6 @@ The contract's test is **closure**: a unit of work traced end to end, nothing da
 - [ ] Each unit's input is the SPMC bundle, **frozen and bounded** at execution start, identified by `bundle-hash`.
 - [ ] The bundle is fully resolved — no reference the executor must chase by calling back.
 - [ ] The worker's behaviour is a function of this input alone; nothing is acquired through an undeclared channel after start.
-- [ ] Each incoming WorkUnit is **validated against the [contracts-layer](https://github.com/Hafeok/ai-development-contracts) normative schema** for the shared encoding, plus the two structural invariants (no cross-unit edge; every `context-refs` id resolves in-unit), and a non-conforming unit is **rejected** before admission. (Consumer-conformance; see [`contracts-conformance.md`](contracts-conformance.md).)
 
 ### Output Contract
 - [ ] Each unit's output has a declared shape (the VerdictEvent schema; effect-tool writes to the declared workspace) and a declared destination (the event stream; the workspace).

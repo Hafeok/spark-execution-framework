@@ -1,6 +1,6 @@
-# The Spark Execution Substrate
+# The Reference Substrate: DGX Spark
 
-> A single bandwidth-bound box, owned by a developer-thrown switch, running either a batched execution queue or a local explorer — never both. A framework-implementation-layer specification for the second pillar (Execution Contract), with the queue's owned data model and one governing invariant.
+> Kiln's reference substrate: a single bandwidth-bound box, owned by a developer-thrown switch, running either a batched execution queue or a local explorer — never both. The queue's owned data model and the governing invariant specified here are Kiln-normative and substrate-neutral; the residency constraints that motivate the two firings are the Spark's.
 
 ---
 

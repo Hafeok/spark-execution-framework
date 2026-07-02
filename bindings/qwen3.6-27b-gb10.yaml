@@ -1,0 +1,93 @@
+# Model Binding: qwen3.6-27b-gb10
+#
+# Second binding for this substrate. A QUALITY-tier counterpart to the day-tier
+# MoE binding: the dense Qwen3.6-27B trades decode speed and batch density for
+# higher per-token coding quality. Same box, same image, different point on the
+# funnel.
+#
+# Status: DRAFT — not yet hardware-validated. Serves are expected to be EASIER
+# than the 35B MoE (dense FP8 avoids the DeepGEMM MoE-kernel path that caused the
+# sm_121 "Unknown SF transformation" / "Unknown recipe" crashes). Batching numbers
+# below are PLACEHOLDERS to be filled from the same 12-concurrent test used for
+# the MoE binding.
+
+binding_id: qwen3.6-27b-gb10
+validated: null                 # fill with date once served + measured
+tier: quality                   # deep/single-stream work where quality > throughput
+substrate: dgx-spark-gb10
+
+platform:
+  chip: GB10 (Grace-Blackwell, sm_121)
+  unified_memory_gb: 128
+  driver: 580.159.03
+  cuda: "13.0"
+
+image: ghcr.io/timothystewart6/vllm-gb10:v0.20.1-gb10.0
+vllm_version: 0.20.1
+
+model:
+  repo: Qwen/Qwen3.6-27B-FP8          # VERIFY exact id (may be -Instruct-FP8)
+  local_path: /models/Qwen3.6-27B-FP8
+  served_name: qwen3.6-27b
+  architecture: DENSE 27B (all params active every token), Gated DeltaNet + Gated Attention hybrid
+  quantization: FP8                   # ~27 GB on disk — LESS memory than the 37.5 GB MoE
+#   Dense: no MoE expert routing, so the DeepGEMM MoE weight-prep path is never hit.
+
+env:
+  VLLM_USE_DEEP_GEMM: "0"             # kept as cheap insurance; dense likely doesn't need it
+#   No --moe-backend reasoning applies here — there is no MoE layer.
+
+flags:
+  host: 0.0.0.0
+  port: 8000
+  max_model_len: 65536
+  max_num_seqs: 4                     # will likely need to be LOWER than the MoE for equal
+                                      #   memory headroom — dense pays full compute per seq
+  gpu_memory_utilization: 0.8
+  enable_prefix_caching: true
+  language_model_only: true
+  reasoning_parser: qwen3
+  enable_auto_tool_choice: true
+  tool_call_parser: qwen3_coder
+
+sampling:
+  temperature: 0.6
+  top_p: 0.95
+  top_k: 20
+  presence_penalty: 0.0
+
+thinking:
+  default: on
+  budget_note: >
+    Same as the MoE binding: thinking ON needs generous max_tokens (1500-2000+)
+    for coding cells, or the answer never arrives before the token cap.
+
+# --- why this binding exists: the quality/throughput trade, measured where known ---
+tradeoff_vs_moe:
+  coding_quality: HIGHER
+    # SWE-bench Verified 77.2% (27B dense) vs 73.4% (35B-A3B MoE)
+    # Terminal-Bench 2.0    59.3   (27B dense) vs 51.5  (35B-A3B MoE) — larger gap,
+    #   matters for multi-step agentic terminal workflows.
+  decode_speed: LOWER
+    # dense activates all 27B/token vs ~3B/token for the MoE.
+    # Community: MoE generates ~3-5x faster tok/s on identical hardware.
+  batch_density: LOWER
+    # every sequence in a batch pays full 27B compute; less headroom than the MoE,
+    # so QUEUE-mode aggregate throughput advantage shrinks. This is WHY it is a
+    # quality tier, not a day tier.
+  memory: LOWER
+    # ~27 GB FP8 vs 37.5 GB — fitting was never the constraint; decode speed is.
+
+# --- validation record: TO BE MEASURED ---
+validation:
+  status: pending
+  run_command_verified: false
+  smoke_test_passed: null
+  batching_test:                      # rerun the identical 12-concurrent / 200-tok test
+    concurrency: 12
+    wall_clock_s: null                # EXPECT visibly WORSE than the MoE's 18.9 s
+    effective_multiple: null
+    note: >
+      The measured gap between this and the MoE's 18.9 s IS the data that confirms
+      the tier split. If this comes in close to 18.9 s the dense penalty is smaller
+      than expected on this box; if much higher, the tier assignment is well-founded.

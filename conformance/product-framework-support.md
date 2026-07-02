@@ -1,6 +1,6 @@
 # Conformance Checklist — Product Framework Support
 
-> The Product Framework's conformance ladder (Described → Realised → Verified → Delivered) restated as the execution-side obligations this framework supplies the machinery for. The framework does not *grant* conformance — an instance's own artifacts do — but rungs 2–4 cannot be operationally satisfied without an execution substrate. Each item names what this framework provides toward the rung. See [`docs/01-execution-framework.md`](../docs/01-execution-framework.md) for the full argument.
+> The Product Framework's conformance ladder (Described → Realised → Verified → Delivered) restated as the execution-side obligations Kiln supplies the machinery for. Kiln does not *grant* conformance — an instance's own artifacts do — but rungs 2–4 cannot be operationally satisfied without an execution substrate. Each item names what Kiln provides toward the rung. See [`docs/01-execution-framework.md`](../docs/01-execution-framework.md) for the full argument.
 
 The ladder is cumulative; an instance claims the highest rung it satisfies.
 
@@ -42,13 +42,13 @@ The ladder is cumulative; an instance claims the highest rung it satisfies.
 
 ## The claim, assembled
 
-An instance using the Product Framework for specification and this framework for execution can claim:
+An instance using the Product Framework for specification and Kiln for execution can claim:
 
 - [ ] **Realised** — dispatch resolves What/How pointers into frozen bundles without losing the reference.
 - [ ] **Verified** — cell-gates are the acceptance-gating verifications, computed against a protected oracle, traced in `cell-results`.
 - [ ] **Delivered** — "done" is the computed reduction of verdict events, never a human claim.
 
-Described is the instance's own to satisfy before dispatch; this framework's contribution begins at Realised and runs through Delivered.
+Described is the instance's own to satisfy before dispatch; Kiln's contribution begins at Realised and runs through Delivered.
 
 ---
 

@@ -1,6 +1,6 @@
 # Glossary
 
-> Every load-bearing term in this framework, pinned once. Where a term is inherited from a foundation it is marked and its meaning is not re-defined here, only located. Where this framework introduces or specialises a term, the definition here is normative.
+> Every load-bearing term in Kiln, pinned once. Where a term is inherited from a foundation it is marked and its meaning is not re-defined here, only located. Where this framework introduces or specialises a term, the definition here is normative.
 
 ---
 
@@ -32,7 +32,7 @@
 
 ---
 
-## Introduced or specialised by this framework
+## Introduced or specialised by Kiln
 
 **Cell** — the execution primitive. The smallest thing the executor runs. Cells live *inside* a work-unit, ordered by an intra-unit dependency DAG (e.g. test-before-implement). Cells are never reordered or scheduled by the queue; they are the sealed interior of a work-unit.
 
@@ -67,5 +67,9 @@
 **Acceptance-class** — a per-work-unit field declaring the human-free transition bindings: `auto-commit-if-green` (a verdict→advance binding that proceeds without a human — Level 5 for that unit kind) or `needs-verdict` (accepted still escalates to a human — Level 4). The autonomy level is thus per-unit-kind, declared, not a global setting.
 
 **Per-unit ephemeral sandbox** — the Environment mechanism: each work-unit runs in its own isolation domain (frozen bundle read-only, private workspace writable, no network except declared destinations, no host/peer reach), destroyed at verdict. Why the cell-DAG is sealed: it is one sandbox.
+
+**Kiln** — this framework: an execution-pillar implementation for tiered, verified, autonomous work on pinned open models. The metaphor is normative shorthand: a *firing* is a batched execution against one binding; a load must be *temperature-homogeneous* (binding-homogeneity); firing schedules are set by the potter (the developer switch), never the kiln.
+
+**Reference substrate** — the concrete hardware the reference implementation targets (NVIDIA DGX Spark). Kiln's obligations are substrate-neutral; the substrate motivates, but does not own, the two-configuration design.
 
 **Maturation** — the compounding loop: exploration mints binding-homogeneous work-units; executing them cheaply by day feeds accepted work back; the heterogeneity rate falls and more work descends to cheap bindings permanently. The funnel made temporal.

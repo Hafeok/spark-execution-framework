@@ -1,8 +1,25 @@
 # Changelog
 
-All notable changes to the Spark Execution Framework are recorded here.
+All notable changes to **Kiln** are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); the framework
 versions on its own axis, independently of any implementation.
+
+## [0.2.0] — 2026-07-02
+
+### Changed
+- **Renamed and repositioned: the Spark Execution Framework is now Kiln.** The
+  framework was never hardware-specific; its obligations (eight-block discharge,
+  ladder support, the Work-Unit Interface) are substrate-neutral. The DGX Spark
+  is demoted to *reference substrate*. Two identity claims are promoted to the
+  front: the **funnel** is the policy (batching is only QUEUE mode's mechanism),
+  and **pinned open models are a hard dependency** (binding-homogeneity is
+  unenforceable against a closed API that can swap precision under a name).
+- `docs/02-substrate.md` retitled "The Reference Substrate: DGX Spark"; its data
+  model and invariant remain Kiln-normative.
+
+### Added
+- `bindings/qwen3.6-27b-gb10.yaml` — quality-tier binding (dense 27B), DRAFT
+  pending hardware validation; placeholders for the comparative batching test.
 
 ## [0.1.0] — 2026-06-26
 
@@ -23,25 +40,6 @@ implementation. Three validation questions remain open (see the overview).
   producer-owned, specification-stewarded.
 - `conformance/execution-contract-checklist.md` — the eight blocks as a checkable list.
 - `conformance/product-framework-support.md` — the four ladder rungs as a checkable list.
-
-### Added — 2026-07-02 (contracts conformance)
-- `conformance/contracts-conformance.md` — consumer-side declaration against the
-  [AI Development Contracts](https://github.com/Hafeok/ai-development-contracts) tier
-  (contracts `0.1.0`, foundation_ref `main`). Walks the consumer checklist item for
-  item; autonomy declared per-unit-kind via `acceptance-class`.
-
-### Changed — 2026-07-02 (contracts conformance)
-- `interface/work-unit-interface.md` — now the **Spark-specific projection** of the
-  shared contracts, not a competing schema. Names ai-development-contracts as source
-  of truth; aligns the WorkUnit to the published shape (`spmc-bundle.model` /
-  `context-pool`, cell-graph interior); **adds `artifact-delivery`** and the
-  per-cell **artifact `content-hash` + delivery** in the VerdictEvent; reframes
-  `environment` / `credential-grant` / `tool-grants` as optional executor-side
-  additions with conformant defaults; states schema-validation-before-admission.
-- `conformance/execution-contract-checklist.md` — Input Contract gains a
-  validate-against-normative-schema-and-reject item.
-- `docs/01-execution-framework.md` — Output Contract row now covers artifact-delivery
-  modes and content-hash; contracts layer added to references.
 
 ### Added — 2026-07-02
 - `bindings/qwen3.6-35b-gb10.yaml` — first hardware-validated Model binding

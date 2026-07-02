@@ -1,6 +1,6 @@
 # Contributing
 
-This is a **framework** repository: normative, stable, implementation-free. The
+This is **Kiln**, a framework repository: normative, stable, implementation-free. The
 running pipeline lives in a separate implementation repo that depends on this one.
 
 ## What changes go where
@@ -15,7 +15,7 @@ running pipeline lives in a separate implementation repo that depends on this on
 
 Dependencies point downward, toward stability. This framework depends on the
 [AI Development Foundations](https://github.com/Hafeok/ai-development-foundations);
-the implementation depends on this framework. Volatility is contained upward,
+implementations depend on Kiln. Volatility is contained upward,
 never pushed down. A change here that would force every implementation to change
 is a signal to reconsider the change, not the implementations.
 

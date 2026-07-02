@@ -1,14 +1,14 @@
 # Overview
 
-> What the Spark Execution Framework is, where it sits, how its two-level control model works, and what it does not yet close. The bridge document — read it to understand how the pieces relate; read each numbered document to understand what it requires.
+> What Kiln is, where it sits, how its two-level control model works, and what it does not yet close. The bridge document — read it to understand how the pieces relate; read each numbered document to understand what it requires.
 
 ---
 
 ## What this framework is
 
-The Specification Framework and the Execution Contract are peers — two foundations, neither containing the other. The specification pillar says *what correct is*; the execution pillar guarantees *work stays in bounds and correctness is verified before anything is trusted*. This framework is one concrete implementation of the **execution** pillar: an Assembly-Line-Protocol-class framework that discharges all eight building blocks of the Execution Contract on a specific, bounded substrate — a single NVIDIA DGX Spark.
+The Specification Framework and the Execution Contract are peers — two foundations, neither containing the other. The specification pillar says *what correct is*; the execution pillar guarantees *work stays in bounds and correctness is verified before anything is trusted*. Kiln is one concrete implementation of the **execution** pillar: an Assembly-Line-Protocol-class framework that discharges all eight building blocks of the Execution Contract. The framework itself is substrate-neutral; its **reference substrate** is a single NVIDIA DGX Spark, whose constraints shaped the reference design.
 
-It is named and opinionated on purpose. The Execution Contract is technology-neutral; this framework is not. It commits to one machine, one control model, and one data model, and it argues conformance against the contract. A different executor honouring the same contract and the same Work-Unit Interface would satisfy the same obligations differently — the conformance is portable even though the substrate is fixed.
+It is named and opinionated on purpose. The Execution Contract is technology-neutral; Kiln commits to one control model, one data model, and one hard dependency — **pinned open models** — and argues conformance against the contract. The binding-homogeneity invariant is only enforceable when weights are open and the serving stack is yours: a closed API can swap precision under an unchanged name, dissolving the binding. The substrate, by contrast, is swappable: a different executor honouring the same contracts satisfies the same obligations. The conformance is portable; only the reference implementation is Spark-shaped.
 
 ## Where it sits
 
@@ -16,18 +16,18 @@ It is named and opinionated on purpose. The Execution Contract is technology-neu
 ai-development-foundations  (Specification Framework ║ Execution Contract)
         │  defines the standard
         ▼
-Spark Execution Framework   (this repo — discharges the Execution Contract)
+Kiln                        (this repo — discharges the Execution Contract)
         │  executes work units produced by
         ▲
 product-framework  ──── Work-Unit Interface ────►  (the seam: producer-owned, spec-stewarded)
         │
         ▼
-the running Spark pipeline  (separate implementation repo — depends on this one)
+a running Kiln pipeline     (separate implementation repo — depends on this one)
 ```
 
-The framework consumes work units a specification pillar (e.g. product-framework via product-cli) produces, runs them, and emits verdict events. It owns nothing on the specification side and negotiates nothing about the interface — it conforms to a contract the specification pillar stewards.
+Kiln consumes work units a specification pillar (e.g. product-framework via product-cli) produces, runs them, and emits verdict events. It owns nothing on the specification side and negotiates nothing about the interface — it conforms to a contract the specification pillar stewards.
 
-## The premise: a bandwidth-bound box forces the architecture
+## The reference substrate: a bandwidth-bound box forces the two firings
 
 The Spark is strong at exactly one thing — **batched inference of small/medium models**, where many concurrent executions share a resident model — and weak at its opposite: a single large model decoding serially is bandwidth-bound to roughly 33 tok/s, its worst regime. Two workloads want the box in mutually exclusive configurations: batched execution wants many small models resident; local exploration wants one large model resident, deep and serial. They cannot co-reside in VRAM.
 
@@ -83,4 +83,4 @@ These are not gaps in the design; they are the design correctly declaring what i
 
 ---
 
-*This document is the bridge across the framework's three numbered documents and its interface spec. Read it for orientation; read each document for what it requires.*
+*This document is the bridge across Kiln's numbered documents and its interface spec. Read it for orientation; read each document for what it requires.*
