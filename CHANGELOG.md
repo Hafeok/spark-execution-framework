@@ -4,6 +4,44 @@ All notable changes to **Kiln** are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); the framework
 versions on its own axis, independently of any implementation.
 
+## [0.3.0] — 2026-07-02
+
+Conforms to the **repository-delivery + CapabilityManifest** revision of
+[ai-development-contracts](https://github.com/Hafeok/ai-development-contracts)
+(checked against contracts `0.2.0`).
+
+### Added
+- **CapabilityManifest — Kiln now authors a seam artifact.** The executor
+  publishes a self-description of what can run here (servable `bindings`,
+  `delivery` modes/schemes/integration-methods/forges, `shape-languages`,
+  `gate-kinds`; advisory `operational` hints) so a producer matches a unit's
+  requirements *before* dispatch. New "Schema 3" in the Work-Unit Interface, a
+  "Publishing capabilities" section in `docs/01-execution-framework.md` and both
+  conformance checklists, and a substrate note tying `capabilities.bindings` to
+  the box's resident bindings and the developer switch to an advisory hint.
+- **`not-admitted` verdict + `missing-capabilities`.** Admission is a distinct
+  gate before verification: a unit whose requirements the box cannot cover never
+  runs and is answered with the concrete distance. It binds to halt/escalate,
+  never to advancing the ladder (a higher tier does not add a capability).
+- **`delivery-result` on the VerdictEvent** (repository mode): branch, commit,
+  `pr-url` — refs, not payloads; the commit SHA is the content hash over the
+  produced tree.
+
+### Changed
+- **Artifact delivery: `workspace` → `repository`.** Produced work lands inline
+  (by value) or in a **declared git repository** (`file:///` local, remote for
+  production) with an integration method (`push-branch` | `pull-request`). The
+  producer knows the ref shape to expect back; concurrency isolation (worktrees,
+  clones) is executor-internal. Updated across the interface, both docs, the
+  glossary, and both conformance checklists.
+- **No credential material in the WorkUnit, by design.** The unit is frozen,
+  hashed, stored, and re-emitted; repository push and forge-API (PR) access are
+  exchanged executor-side at the boundary from the `credential-grant` reference.
+  Opening a pull request is a declared **capability**. Environment/Credentials
+  discharge updated accordingly (writable mount is the declared repository
+  working tree; network floor includes the repo host and, for PR delivery, the
+  forge).
+
 ## [0.2.0] — 2026-07-02
 
 ### Changed

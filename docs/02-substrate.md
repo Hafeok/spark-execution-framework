@@ -127,7 +127,11 @@ WorkUnit                       — the schedulable, reorderable, escalatable ato
   ├─ mode-tag                  PROJECTION of tier through the residency schedule
   ├─ acceptance-class          auto-commit-if-green | needs-verdict
   ├─ ladder-position           current rung on the worker-role escalation ladder
-  ├─ state                     queued | running | done | failed | escalated
+  ├─ artifact-delivery         inline | repository{ url, base-ref, integration }
+  │                            declared destination for produced work; NO credential
+  ├─ state                     admitted?→ queued | running | done | failed | escalated
+  │                            (a unit whose requirements the box cannot cover is
+  │                             answered not-admitted at the boundary, before enqueue)
   └─ cell-graph                SEALED interior — the executor's concern, not the queue's
 ```
 
@@ -138,6 +142,18 @@ Three structural facts follow from work-unit independence and seal the design:
 2. **The cell-DAG is local and bounded.** Inside one admitted unit, the executor runs the unblocked cell frontier, gates, advances. The test-before-implement pattern is a *within-unit* edge — the canonical intra-unit dependency, and (per the invariant) tier-homogeneous, because writing a test from a frozen spec and implementing against it are the same constraint-density class.
 
 3. **Done aggregates through two reductions in two places.** Cell verdicts reduce to unit-done **inside the executor**. Unit-done reduces to deliverable-done **at the graph level**. The queue observes only unit-level completion. "Done is computed, not claimed" holds at the unit boundary.
+
+---
+
+## What the box can run: the published CapabilityManifest
+
+The box does not only consume work-units; it **publishes a self-description** of what can run on it — a CapabilityManifest — so a producer can match a unit's requirements *before* dispatching and never discover inexecutability as a runtime surprise. On this substrate the manifest is a projection of the box's own configuration, so it costs nothing extra to keep honest:
+
+- **`capabilities.bindings`** — exactly the resident/validated Model bindings (the [`bindings/`](../bindings/) that fit the 128 GB box at their served quantization). A unit is servable iff its binding matches one; a unit demanding an unresident binding is `not-admitted`, not silently queued forever.
+- **`capabilities.delivery` / `shape-languages` / `gate-kinds`** — the delivery modes the box supports (inline; repository with its URL schemes, integration methods, and reachable forges), the shape languages its verifiers can validate against, and the gate kinds it can run. These are stable facts about the box's tooling.
+- **`operational` (advisory only)** — the developer-switch state (`QUEUE` / `EXPLORER`) and queue-depth are natural operational hints. They **order routing among boxes that already match**; they never make a unit inexecutable. A box in `EXPLORER` still *can* serve its QUEUE bindings — it is a scheduling fact that it is not doing so now, not a capability gap. This is exactly why the normative/advisory split matters here: the developer switch is the most volatile thing about the box, and admission must not flicker with it.
+
+Admission stays authoritative at the boundary regardless of what any manifest said: the manifest is pre-flight, the box's actual resident state at dispatch is the truth, and a `not-admitted` verdict carrying the concrete `missing-capabilities` distance is the honest answer when they diverge (a signal the manifest is stale, never a reason to escalate the ladder).
 
 ---
 

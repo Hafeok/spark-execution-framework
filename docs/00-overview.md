@@ -25,7 +25,7 @@ product-framework  ──── Work-Unit Interface ────►  (the seam: 
 a running Kiln pipeline     (separate implementation repo — depends on this one)
 ```
 
-Kiln consumes work units a specification pillar (e.g. product-framework via product-cli) produces, runs them, and emits verdict events. It owns nothing on the specification side and negotiates nothing about the interface — it conforms to a contract the specification pillar stewards.
+Kiln consumes work units a specification pillar (e.g. product-framework via product-cli) produces, runs them, and emits verdict events. It owns nothing on the specification side and negotiates nothing about the interface — it conforms to a contract the specification pillar stewards. It authors exactly one seam artifact: a **CapabilityManifest** it publishes out of band, declaring what can run on the box so a producer matches a unit's requirements *before* dispatch (a unit it cannot serve is answered `not-admitted`, with the concrete missing capabilities, never a silent or partial run). Produced work lands either inline or in a **declared git repository** — `file://` for local development, remote for production — and no credential ever travels in the frozen unit.
 
 ## The reference substrate: a bandwidth-bound box forces the two firings
 

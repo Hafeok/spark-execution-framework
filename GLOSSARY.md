@@ -12,7 +12,7 @@
 
 **Input Contract** *(Execution Contract)* — the frozen, bounded input a worker is a function of. Here, the SPMC bundle, mounted read-only, identified by `bundle-hash`.
 
-**Output Contract** *(Execution Contract)* — the declared shape and destination of what a worker produces. Here, the VerdictEvent (to the stream) and effect-tool writes (to the declared workspace).
+**Output Contract** *(Execution Contract)* — the declared shape and destination of what a worker produces. Here, the VerdictEvent (to the stream) and produced work landing per `artifact-delivery` (inline by value, or into the declared git repository).
 
 **Verification** *(Execution Contract)* — a declared verifier producing a verdict in the vocabulary *accepted / rejected / escalate*, against an oracle the worker cannot write.
 
@@ -60,13 +60,23 @@
 
 **Dispatch (`product dispatch`)** — the specification side's last act: resolve What/How pointers into a frozen by-value SPMC bundle, run the binding-homogeneity check, and emit the WorkUnit. The boundary between the pointer-world of specification and the frozen-world of execution. Mechanical; no model required.
 
-**WorkUnit (schema)** — the outbound wire contract across the seam. Carries: unit-ref, parent-deliverable, bundle-hash, the by-value SPMC bundle, the Model binding, tier, acceptance-class, ladder-position, environment declaration, credential-grant reference, tool-grants, and the sealed cell-graph.
+**WorkUnit (schema)** — the outbound wire contract across the seam. Carries: unit-ref, parent-deliverable, bundle-hash, the by-value SPMC bundle, the Model binding, tier, acceptance-class, ladder-position, `artifact-delivery` (the declared destination — inline or repository), environment declaration, credential-grant reference, tool-grants, and the sealed cell-graph. It carries **no credential material**: it is frozen, hashed, stored, and re-emitted, so repository/forge access is exchanged executor-side at the boundary, never inlined.
 
-**VerdictEvent (schema)** — the inbound wire contract across the seam. Self-describing: carries event-id, emitted-at, unit-ref, parent-deliverable, bundle-hash, verdict, tier-ran, cell-results, next-consequence. Emitted fire-and-forget to a stream; the producer knows no consumer.
+**VerdictEvent (schema)** — the inbound wire contract across the seam. Self-describing: carries event-id, emitted-at, unit-ref, parent-deliverable, bundle-hash, verdict (accepted | rejected | escalate | **not-admitted**), tier-ran, cell-results, next-consequence, plus `missing-capabilities` (required with not-admitted; the distance) and `delivery-result` (repository mode; branch, commit, pr-url). On not-admitted the unit never ran, so tier-ran and cell-results are absent. Emitted fire-and-forget to a stream; the producer knows no consumer.
+
+**CapabilityManifest (schema)** — the executor's published self-description of what can run here: servable `bindings`, `delivery` modes/url-schemes/integration-methods/forges, `shape-languages`, `gate-kinds` (normative for matching), plus advisory `operational` hints (capacity, queue-depth, mode). The one seam artifact Kiln *authors* rather than consumes. Crosses **out of band** (published, queryable), not per run. Its `capabilities` are the queryable, matchable form of the Execution Contract's Capabilities block.
+
+**Artifact-delivery / repository delivery** — the WorkUnit's declared destination for produced work. `inline`: artifact bodies return by value in the VerdictEvent. `repository`: the executor works against the declared git repository (`{ url, base-ref, integration }`; `file:///` local, remote for production) and lands the run per the integration method; the VerdictEvent then carries only status + refs. Replaces the earlier `workspace` mode.
+
+**Integration method** — how a completed repository-delivery run lands: `push-branch` (the executor pushes a branch) or `pull-request` (the executor opens a PR against a target ref via a forge API call — itself a declared capability). Contract material, because the producer must know what ref shape to expect back to reconcile deliverable-done; how the executor isolates concurrent runs against the repository (worktrees, clones) is not.
+
+**Requirements / distance / reach** — a unit's *requirements* are derived from the unit itself (its binding, delivery mode + url-scheme + integration method, cell shape-languages, cell gate-kinds), no extra declaration. *Distance* is `requirements(unit) − capabilities(executor)`; empty distance = executable. *Reach* is the set of executors whose manifests cover a unit — a property of how the unit was specified, widened by demanding less.
+
+**Admission / not-admitted** — the boundary gate that precedes execution: a unit whose derived requirements the executor cannot cover is answered `not-admitted` with the concrete `missing-capabilities`, having *never run*. Admission failure is distinct from execution failure — a higher tier fixes the latter, never the former — so not-admitted binds to halt/escalate (route elsewhere or surface to a human), never to advancing the ladder. A CapabilityManifest match is pre-flight; admission stays authoritative, so not-admitted after a match is expected (a signal the manifest was stale), not a contradiction.
 
 **Acceptance-class** — a per-work-unit field declaring the human-free transition bindings: `auto-commit-if-green` (a verdict→advance binding that proceeds without a human — Level 5 for that unit kind) or `needs-verdict` (accepted still escalates to a human — Level 4). The autonomy level is thus per-unit-kind, declared, not a global setting.
 
-**Per-unit ephemeral sandbox** — the Environment mechanism: each work-unit runs in its own isolation domain (frozen bundle read-only, private workspace writable, no network except declared destinations, no host/peer reach), destroyed at verdict. Why the cell-DAG is sealed: it is one sandbox.
+**Per-unit ephemeral sandbox** — the Environment mechanism: each work-unit runs in its own isolation domain (frozen bundle read-only; the writable working tree is a per-run worktree/clone of the declared repository, or a private scratch workspace under inline delivery; no network except declared destinations — the repo host and, for pull-request delivery, the forge; no host/peer reach), destroyed at verdict. Why the cell-DAG is sealed: it is one sandbox. Isolating concurrent runs against one repository is the sandbox's concern, invisible to the seam.
 
 **Kiln** — this framework: an execution-pillar implementation for tiered, verified, autonomous work on pinned open models. The metaphor is normative shorthand: a *firing* is a batched execution against one binding; a load must be *temperature-homogeneous* (binding-homogeneity); firing schedules are set by the potter (the developer switch), never the kiln.
 

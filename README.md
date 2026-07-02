@@ -34,7 +34,7 @@ Kiln **requires open models**. This is a hard dependency, not a preference: the 
 
 The seam to the specification pillar is specified separately, because it versions on its own axis:
 
-- **[interface/work-unit-interface.md](interface/work-unit-interface.md)** — the Work-Unit Interface. Two schemas (WorkUnit out, VerdictEvent in), two emit-points, no shared runtime surface. Producer-owned, specification-stewarded, per the Two Pillars seam rule.
+- **[interface/work-unit-interface.md](interface/work-unit-interface.md)** — the Work-Unit Interface. Two per-run schemas (WorkUnit out, VerdictEvent in) and two emit-points, plus the out-of-band **CapabilityManifest** Kiln publishes so producers can match a unit's requirements before dispatch; no shared runtime surface. Produced work lands either inline or in a declared git repository (`file://` local, remote for production) — never via an undeclared store, and never with a credential in the unit. Producer-owned, specification-stewarded, per the Two Pillars seam rule.
 
 ## Conformance
 
@@ -43,7 +43,7 @@ The seam to the specification pillar is specified separately, because it version
 
 ## Bindings
 
-- **[bindings/](bindings/)** — validated SPMC Model bindings: fully-pinned, hardware-tested firing schedules that fill a WorkUnit's `model-binding` field. Each names its tier. See [qwen3.6-35b-gb10.yaml](bindings/qwen3.6-35b-gb10.yaml) for the first validated binding (day tier, measured ~3× batching), and [qwen3.6-27b-gb10.yaml](bindings/qwen3.6-27b-gb10.yaml) for the quality-tier draft.
+- **[bindings/](bindings/)** — validated SPMC Model bindings: fully-pinned, hardware-tested firing schedules that fill a WorkUnit's `model-binding` field. Each names its tier. These resident bindings are also exactly what a Kiln instance advertises as `capabilities.bindings` in its published CapabilityManifest — a unit is servable iff its binding matches one. See [qwen3.6-35b-gb10.yaml](bindings/qwen3.6-35b-gb10.yaml) for the first validated binding (day tier, measured ~3× batching), and [qwen3.6-27b-gb10.yaml](bindings/qwen3.6-27b-gb10.yaml) for the quality-tier draft.
 
 ## Reference
 
